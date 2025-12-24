@@ -32,26 +32,43 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
 }
 
 /**
- * Generate embed URL for Sketchfab model
+ * Generate embed URL for Sketchfab model (white-label)
  */
 export function getSketchfabEmbedUrl(
   modelId: string,
   options: {
     autostart?: boolean;
-    autospin?: boolean;
-    ui_stop?: boolean;
+    autospin?: number; // 0 = off, 0.1 = very slow, 1 = normal
+    whiteLabel?: boolean;
   } = {}
 ): string {
   const params = new URLSearchParams();
 
-  if (options.autostart !== false) {
-    params.set("autostart", "1");
-  }
-  if (options.autospin !== false) {
-    params.set("autospin", "1");
-  }
-  if (options.ui_stop) {
+  // Autostart
+  params.set("autostart", options.autostart !== false ? "1" : "0");
+
+  // Autospin - default to very slow (0.1) or off (0)
+  params.set("autospin", String(options.autospin ?? 0.1));
+
+  // White-label: hide all Sketchfab UI/branding
+  if (options.whiteLabel !== false) {
+    params.set("ui_controls", "0");
+    params.set("ui_infos", "0");
+    params.set("ui_inspector", "0");
     params.set("ui_stop", "0");
+    params.set("ui_help", "0");
+    params.set("ui_settings", "0");
+    params.set("ui_vr", "0");
+    params.set("ui_fullscreen", "0");
+    params.set("ui_annotations", "0");
+    params.set("ui_watermark", "0");
+    params.set("ui_watermark_link", "0");
+    params.set("ui_hint", "0");
+    params.set("ui_ar", "0");
+    params.set("ui_ar_help", "0");
+    params.set("ui_ar_qrcode", "0");
+    params.set("ui_loading", "0");
+    params.set("ui_fadeout", "0");
   }
 
   const queryString = params.toString();

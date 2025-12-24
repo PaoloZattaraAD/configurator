@@ -2,19 +2,20 @@
 
 import { useState, useCallback, useRef } from "react";
 import { viewerController } from "@/lib/viewer/sketchfab-viewer";
-import type { Material, Texture, SketchfabAPI } from "@/types";
+import type { SketchfabMaterial, SketchfabTexture, SketchfabAPI } from "@/types";
 
 interface UseViewerAPIOptions {
   autostart?: boolean;
-  autospin?: boolean;
+  autospin?: number;
+  whiteLabel?: boolean;
 }
 
 export function useViewerAPI(options: UseViewerAPIOptions = {}) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [materials, setMaterials] = useState<Material[]>([]);
-  const [textures, setTextures] = useState<Texture[]>([]);
+  const [materials, setMaterials] = useState<SketchfabMaterial[]>([]);
+  const [textures, setTextures] = useState<SketchfabTexture[]>([]);
   const apiRef = useRef<SketchfabAPI | null>(null);
 
   const initViewer = useCallback(
@@ -25,7 +26,8 @@ export function useViewerAPI(options: UseViewerAPIOptions = {}) {
       try {
         const api = await viewerController.init(iframe, modelId, {
           autostart: options.autostart ?? true,
-          autospin: options.autospin ?? true,
+          autospin: options.autospin ?? 0.1,
+          whiteLabel: options.whiteLabel ?? true,
         });
 
         apiRef.current = api;
@@ -49,10 +51,10 @@ export function useViewerAPI(options: UseViewerAPIOptions = {}) {
         setIsLoading(false);
       }
     },
-    [options.autostart, options.autospin]
+    [options.autostart, options.autospin, options.whiteLabel]
   );
 
-  const setMaterial = useCallback(async (material: Material) => {
+  const setMaterial = useCallback(async (material: SketchfabMaterial) => {
     if (!viewerController.isInitialized()) {
       console.warn("[Viewer] Not initialized");
       return;
@@ -65,16 +67,31 @@ export function useViewerAPI(options: UseViewerAPIOptions = {}) {
     }
   }, []);
 
-  const setTexture = useCallback(async (textureUid: string, url: string) => {
+  const addTexture = useCallback(async (url: string): Promise<string | null> => {
     if (!viewerController.isInitialized()) {
       console.warn("[Viewer] Not initialized");
-      return;
+      return null;
     }
 
     try {
-      await viewerController.setTexture(textureUid, url);
+      return await viewerController.addTexture(url);
     } catch (err) {
-      console.error("[Viewer] Failed to set texture", err);
+      console.error("[Viewer] Failed to add texture", err);
+      return null;
+    }
+  }, []);
+
+  const updateTexture = useCallback(async (url: string, textureUid: string): Promise<string | null> => {
+    if (!viewerController.isInitialized()) {
+      console.warn("[Viewer] Not initialized");
+      return null;
+    }
+
+    try {
+      return await viewerController.updateTexture(url, textureUid);
+    } catch (err) {
+      console.error("[Viewer] Failed to update texture", err);
+      return null;
     }
   }, []);
 
@@ -99,7 +116,8 @@ export function useViewerAPI(options: UseViewerAPIOptions = {}) {
     materials,
     textures,
     setMaterial,
-    setTexture,
+    addTexture,
+    updateTexture,
     refreshMaterials,
     api: apiRef.current,
   };

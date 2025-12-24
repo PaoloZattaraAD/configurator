@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useModelStructure } from "./useSketchfabAPI";
 import { useViewerAPI } from "./useViewerAPI";
-import type { Material } from "@/types";
+import type { SketchfabMaterial } from "@/types";
 
 interface UseModelMaterialsOptions {
   modelId: string | null;
@@ -14,16 +14,15 @@ export function useModelMaterials({
   modelId,
   useViewerAPI: useViewer = false,
 }: UseModelMaterialsOptions) {
-  const [combinedMaterials, setCombinedMaterials] = useState<Material[]>([]);
+  const [combinedMaterials, setCombinedMaterials] = useState<SketchfabMaterial[]>([]);
 
-  // From API route
+  // From API route (limited info)
   const {
-    materials: apiMaterials,
     loading: apiLoading,
     error: apiError,
   } = useModelStructure(modelId);
 
-  // From Viewer API
+  // From Viewer API (full material info)
   const {
     materials: viewerMaterials,
     isLoading: viewerLoading,
@@ -32,12 +31,10 @@ export function useModelMaterials({
   useEffect(() => {
     if (useViewer && viewerMaterials.length > 0) {
       setCombinedMaterials(viewerMaterials);
-    } else if (apiMaterials.length > 0) {
-      setCombinedMaterials(apiMaterials);
     } else {
       setCombinedMaterials([]);
     }
-  }, [apiMaterials, viewerMaterials, useViewer]);
+  }, [viewerMaterials, useViewer]);
 
   return {
     materials: combinedMaterials,

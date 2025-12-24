@@ -1,14 +1,11 @@
 // Wrapper per Sketchfab Viewer API
 
-import type { SketchfabAPI, Material, Texture } from "@/types";
+import type { SketchfabAPI, SketchfabMaterial, SketchfabTexture, SketchfabInitOptions } from "@/types";
 
 interface ViewerOptions {
   autostart?: boolean;
-  autospin?: boolean;
-  ui_stop?: boolean;
-  ui_infos?: boolean;
-  ui_controls?: boolean;
-  ui_watermark?: boolean;
+  autospin?: number;
+  whiteLabel?: boolean;
 }
 
 export class SketchfabViewerController {
@@ -35,7 +32,7 @@ export class SketchfabViewerController {
 
       const client = new window.Sketchfab(iframe);
 
-      client.init(modelId, {
+      const initOptions: SketchfabInitOptions = {
         success: (api) => {
           this.api = api;
           api.start();
@@ -44,17 +41,35 @@ export class SketchfabViewerController {
         error: () => {
           reject(new Error("Failed to initialize Sketchfab viewer"));
         },
-        autostart: options.autostart ? 1 : 0,
-        autospin: options.autospin ? 1 : 0,
-        ui_stop: options.ui_stop ? 1 : 0,
-      });
+        autostart: options.autostart !== false ? 1 : 0,
+        autospin: options.autospin ?? 0.1,
+      };
+
+      // White-label options
+      if (options.whiteLabel !== false) {
+        initOptions.ui_controls = 0;
+        initOptions.ui_infos = 0;
+        initOptions.ui_inspector = 0;
+        initOptions.ui_stop = 0;
+        initOptions.ui_help = 0;
+        initOptions.ui_settings = 0;
+        initOptions.ui_watermark = 0;
+        initOptions.ui_watermark_link = 0;
+        initOptions.ui_hint = 0;
+        initOptions.ui_annotations = 0;
+        initOptions.ui_vr = 0;
+        initOptions.ui_fullscreen = 0;
+        initOptions.ui_ar = 0;
+      }
+
+      client.init(modelId, initOptions);
     });
   }
 
   /**
    * Ottieni la lista dei materiali
    */
-  async getMaterials(): Promise<Material[]> {
+  async getMaterials(): Promise<SketchfabMaterial[]> {
     return new Promise((resolve, reject) => {
       if (!this.api) {
         reject(new Error("Viewer not initialized"));
@@ -74,7 +89,7 @@ export class SketchfabViewerController {
   /**
    * Ottieni la lista delle texture
    */
-  async getTextures(): Promise<Texture[]> {
+  async getTextures(): Promise<SketchfabTexture[]> {
     return new Promise((resolve, reject) => {
       if (!this.api) {
         reject(new Error("Viewer not initialized"));
@@ -94,7 +109,7 @@ export class SketchfabViewerController {
   /**
    * Imposta un materiale
    */
-  async setMaterial(material: Material): Promise<void> {
+  async setMaterial(material: SketchfabMaterial): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.api) {
         reject(new Error("Viewer not initialized"));
@@ -108,17 +123,41 @@ export class SketchfabViewerController {
   }
 
   /**
-   * Cambia la texture di un materiale
+   * Aggiungi una nuova texture
    */
-  async setTexture(textureUid: string, url: string): Promise<void> {
+  async addTexture(url: string): Promise<string> {
     return new Promise((resolve, reject) => {
       if (!this.api) {
         reject(new Error("Viewer not initialized"));
         return;
       }
 
-      this.api.setTexture(textureUid, url, () => {
-        resolve();
+      this.api.addTexture(url, (err, uid) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(uid);
+        }
+      });
+    });
+  }
+
+  /**
+   * Aggiorna una texture esistente
+   */
+  async updateTexture(url: string, textureUid: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      if (!this.api) {
+        reject(new Error("Viewer not initialized"));
+        return;
+      }
+
+      this.api.updateTexture(url, textureUid, (err, uid) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(uid || textureUid);
+        }
       });
     });
   }
