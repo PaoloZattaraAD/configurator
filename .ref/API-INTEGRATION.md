@@ -41,7 +41,7 @@ Returns:
 ## Authentication
 
 API Key is passed via:
-- Environment variable: `NEXT_PUBLIC_SKETCHFAB_API_KEY`
+- Environment variable: `SKETCHFAB_API_KEY`
 - Header: `Authorization: Token <api_key>`
 
 ## Rate Limits

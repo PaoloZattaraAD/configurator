@@ -13,9 +13,9 @@ export const CONFIG = {
     },
   },
 
-  // Sketchfab
+  // Sketchfab (server-side only - API key not exposed to client)
   sketchfab: {
-    apiKey: process.env.NEXT_PUBLIC_SKETCHFAB_API_KEY,
+    apiKey: process.env.SKETCHFAB_API_KEY,
     baseUrl: "https://api.sketchfab.com/v3",
   },
 

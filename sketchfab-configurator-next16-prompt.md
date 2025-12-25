@@ -116,7 +116,7 @@ export const CONFIG = {
 
   // Sketchfab
   sketchfab: {
-    apiKey: process.env.NEXT_PUBLIC_SKETCHFAB_API_KEY,
+    apiKey: process.env.SKETCHFAB_API_KEY,
     // OAuth2 (opzionale, via context7)
     // oauthClientId: process.env.SKETCHFAB_OAUTH_CLIENT_ID,
   },
@@ -810,7 +810,7 @@ export default function RootLayout({
 
 ```bash
 # Sketchfab API
-NEXT_PUBLIC_SKETCHFAB_API_KEY=your_api_key_here
+SKETCHFAB_API_KEY=your_api_key_here
 
 # MCP Servers (opzionale, auto-discovery)
 REF_ENDPOINT=http://localhost:3000
@@ -895,7 +895,7 @@ npm install
 
 # 2. Env vars
 cp .env.example .env.local
-# Aggiungi NEXT_PUBLIC_SKETCHFAB_API_KEY
+# Aggiungi SKETCHFAB_API_KEY
 
 # 3. Avvia dev server
 npm run dev
