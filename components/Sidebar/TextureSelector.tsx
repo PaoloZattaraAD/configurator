@@ -77,7 +77,7 @@ export default function TextureSelector({
     );
   }
 
-  const currentTexture = getTextureInfo(currentTextureUid);
+  const currentTexture = getTextureInfo(currentTextureUid ?? undefined);
 
   return (
     <div className="sidebar-section">
