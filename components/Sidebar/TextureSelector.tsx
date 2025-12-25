@@ -10,16 +10,6 @@ interface TextureSelectorProps {
   loading: boolean;
 }
 
-// Lista di texture di esempio che possono essere applicate
-const SAMPLE_TEXTURES = [
-  { name: "Pelle Nera", url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=512&h=512&fit=crop", color: "#1a1a1a" },
-  { name: "Pelle Marrone", url: "https://images.unsplash.com/photo-1558618047-f4b511ee798d?w=512&h=512&fit=crop", color: "#5c4033" },
-  { name: "Tessuto Grigio", url: "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=512&h=512&fit=crop", color: "#6b7280" },
-  { name: "Velluto Blu", url: "https://images.unsplash.com/photo-1558171814-2f4e0f3b8c7f?w=512&h=512&fit=crop", color: "#1e40af" },
-  { name: "Legno Chiaro", url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=512&h=512&fit=crop", color: "#d4a574" },
-  { name: "Legno Scuro", url: "https://images.unsplash.com/photo-1558618047-f4b511ee798d?w=512&h=512&fit=crop", color: "#4a3728" },
-];
-
 export default function TextureSelector({
   selectedMaterial,
   textures,
@@ -28,25 +18,44 @@ export default function TextureSelector({
 }: TextureSelectorProps) {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
 
-  // Get channels that have textures
+  // Get channels that have textures assigned (excluding AlbedoPBR which is handled by BaseColorSelector)
   const textureChannels = useMemo(() => {
     if (!selectedMaterial?.channels) return [];
 
     return Object.entries(selectedMaterial.channels)
-      .filter(([, channel]) => channel.texture?.uid)
+      .filter(([name, channel]) => name !== "AlbedoPBR" && channel.texture?.uid)
       .map(([name, channel]) => ({
         name,
-        textureUid: channel.texture?.uid,
+        currentTextureUid: channel.texture?.uid,
       }));
   }, [selectedMaterial]);
 
-  // Get texture info for a UID
+  // Auto-select first texture channel when material changes
+  useMemo(() => {
+    if (textureChannels.length > 0) {
+      if (!selectedChannel || !textureChannels.find(c => c.name === selectedChannel)) {
+        setSelectedChannel(textureChannels[0].name);
+      }
+    } else {
+      setSelectedChannel(null);
+    }
+  }, [textureChannels, selectedChannel]);
+
+  // Get texture info by UID
   const getTextureInfo = (uid: string | undefined) => {
     if (!uid) return null;
     return textures.find((t) => t.uid === uid);
   };
 
-  if (!selectedMaterial) {
+  // Get current texture for selected channel
+  const currentTextureUid = useMemo(() => {
+    if (!selectedChannel) return null;
+    const channel = textureChannels.find(c => c.name === selectedChannel);
+    return channel?.currentTextureUid;
+  }, [selectedChannel, textureChannels]);
+
+  // Don't render if no material selected or no texture channels
+  if (!selectedMaterial || textureChannels.length === 0) {
     return null;
   }
 
@@ -57,7 +66,7 @@ export default function TextureSelector({
           Texture
         </label>
         <div className="grid grid-cols-3 gap-2">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
               key={i}
               className="aspect-square bg-slate-800 rounded-lg animate-pulse"
@@ -68,80 +77,101 @@ export default function TextureSelector({
     );
   }
 
+  const currentTexture = getTextureInfo(currentTextureUid);
+
   return (
     <div className="sidebar-section">
       <label className="block text-sm font-semibold mb-3 text-slate-300">
-        Texture per: {selectedMaterial.name}
+        Texture: {selectedMaterial.name}
       </label>
 
-      {/* Channel selector if multiple texture channels */}
-      {textureChannels.length > 1 && (
-        <div className="mb-4">
-          <p className="text-xs text-slate-400 mb-2">Canale texture:</p>
-          <div className="flex flex-wrap gap-2">
-            {textureChannels.map(({ name }) => (
-              <button
-                key={name}
-                onClick={() => setSelectedChannel(name)}
-                className={`px-3 py-1 rounded text-sm transition-colors ${
-                  selectedChannel === name
-                    ? "bg-blue-600 text-white"
-                    : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-                }`}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
+      {/* Channel selector */}
+      <div className="mb-4">
+        <p className="text-xs text-slate-400 mb-2">Canale texture:</p>
+        <select
+          value={selectedChannel || ""}
+          onChange={(e) => setSelectedChannel(e.target.value)}
+          className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {textureChannels.map(({ name }) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Current texture info */}
+      {currentTexture && (
+        <div className="mb-4 p-3 bg-slate-800/50 rounded-lg">
+          <p className="text-xs text-slate-400 mb-1">Texture corrente:</p>
+          <p className="text-sm text-slate-200 truncate">
+            {currentTexture.name || currentTextureUid?.substring(0, 12)}
+          </p>
         </div>
       )}
 
-      {/* Current texture info */}
-      {textureChannels.length > 0 && (
-        <div className="mb-4 p-3 bg-slate-800/50 rounded-lg">
-          <p className="text-xs text-slate-400 mb-2">Texture correnti:</p>
-          {textureChannels.map(({ name, textureUid }) => {
-            const texInfo = getTextureInfo(textureUid);
+      {/* Available textures grid */}
+      <div>
+        <p className="text-xs text-slate-400 mb-2">
+          Texture disponibili ({textures.length}):
+        </p>
+        {/*
+          Versione con altezza limitata (scrollabile):
+          <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+        */}
+        <div className="grid grid-cols-3 gap-2">
+          {textures.map((texture) => {
+            const isSelected = texture.uid === currentTextureUid;
+            const thumbnailUrl = texture.images?.[0]?.url;
+
             return (
-              <div key={name} className="flex items-center gap-2 text-sm text-slate-300 mb-1">
-                <span className="text-slate-500">{name}:</span>
-                <span className="truncate">{texInfo?.name || textureUid?.substring(0, 8) || "N/A"}</span>
-              </div>
+              <button
+                key={texture.uid}
+                onClick={() => {
+                  if (selectedChannel) {
+                    onChangeTexture(selectedChannel, texture.uid);
+                  }
+                }}
+                disabled={!selectedChannel}
+                className={`aspect-square rounded-lg overflow-hidden transition-all relative group ${
+                  isSelected
+                    ? "ring-2 ring-blue-500"
+                    : "hover:ring-2 hover:ring-blue-400 hover:scale-105"
+                } ${!selectedChannel ? "opacity-50 cursor-not-allowed" : ""}`}
+                title={texture.name || texture.uid}
+              >
+                {thumbnailUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={thumbnailUrl}
+                    alt={texture.name || "Texture"}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-slate-700 flex items-center justify-center">
+                    <span className="text-xs text-slate-400 p-1 text-center truncate">
+                      {texture.name?.substring(0, 10) || texture.uid.substring(0, 8)}
+                    </span>
+                  </div>
+                )}
+                {isSelected && (
+                  <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">Attiva</span>
+                  </div>
+                )}
+                <span className="absolute bottom-0 left-0 right-0 text-xs text-white/0 group-hover:text-white/90 bg-black/0 group-hover:bg-black/60 p-1 truncate transition-all">
+                  {texture.name || texture.uid.substring(0, 8)}
+                </span>
+              </button>
             );
           })}
         </div>
-      )}
-
-      {/* Available textures/colors to apply */}
-      <div>
-        <p className="text-xs text-slate-400 mb-2">Cambia texture:</p>
-        <div className="grid grid-cols-3 gap-2">
-          {SAMPLE_TEXTURES.map((tex, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                const channel = selectedChannel || textureChannels[0]?.name || "AlbedoPBR";
-                onChangeTexture(channel, tex.url);
-              }}
-              className="aspect-square rounded-lg overflow-hidden transition-all hover:ring-2 hover:ring-blue-400 hover:scale-105"
-              title={tex.name}
-            >
-              <div
-                className="w-full h-full flex items-center justify-center"
-                style={{ backgroundColor: tex.color }}
-              >
-                <span className="text-xs text-white/70 text-center px-1">
-                  {tex.name}
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
       </div>
 
-      {textureChannels.length === 0 && (
+      {textures.length === 0 && (
         <p className="text-sm text-slate-500 mt-2">
-          Questo materiale non ha texture modificabili
+          Nessuna texture disponibile nel modello
         </p>
       )}
     </div>

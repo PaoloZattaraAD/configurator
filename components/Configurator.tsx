@@ -60,27 +60,54 @@ export default function Configurator() {
     setSelectedMaterial(material);
   }, []);
 
-  // Change texture for selected material
-  const handleChangeTexture = useCallback(async (channelName: string, textureUrl: string) => {
+  // Change color for selected material channel
+  const handleChangeColor = useCallback((channelName: string, color: [number, number, number]) => {
+    if (!selectedMaterial || !apiRef) {
+      console.warn("[Configurator] Cannot change color: no material selected or API not ready");
+      return;
+    }
+
+    console.log("[Configurator] Changing color:", channelName, color);
+
+    try {
+      // Update material with new color
+      const updatedMaterial: SketchfabMaterial = {
+        ...selectedMaterial,
+        channels: {
+          ...selectedMaterial.channels,
+          [channelName]: {
+            ...selectedMaterial.channels[channelName],
+            color: color,
+          },
+        },
+      };
+
+      // Apply material
+      apiRef.setMaterial(updatedMaterial, () => {
+        console.log("[Configurator] Material color updated");
+        setSelectedMaterial(updatedMaterial);
+
+        // Update materials list
+        setMaterials(prev => prev.map(m =>
+          m.stateSetID === updatedMaterial.stateSetID ? updatedMaterial : m
+        ));
+      });
+    } catch (error) {
+      console.error("[Configurator] Failed to change color:", error);
+    }
+  }, [selectedMaterial, apiRef]);
+
+  // Change texture for selected material channel
+  const handleChangeTexture = useCallback((channelName: string, textureUid: string) => {
     if (!selectedMaterial || !apiRef) {
       console.warn("[Configurator] Cannot change texture: no material selected or API not ready");
       return;
     }
 
-    console.log("[Configurator] Changing texture:", channelName, textureUrl);
+    console.log("[Configurator] Changing texture:", channelName, textureUid);
 
     try {
-      // Add new texture
-      const newTextureUid = await new Promise<string>((resolve, reject) => {
-        apiRef.addTexture(textureUrl, (err, uid) => {
-          if (err) reject(err);
-          else resolve(uid);
-        });
-      });
-
-      console.log("[Configurator] New texture UID:", newTextureUid);
-
-      // Update material with new texture
+      // Update material with new texture UID
       const updatedMaterial: SketchfabMaterial = {
         ...selectedMaterial,
         channels: {
@@ -89,7 +116,7 @@ export default function Configurator() {
             ...selectedMaterial.channels[channelName],
             texture: {
               ...selectedMaterial.channels[channelName]?.texture,
-              uid: newTextureUid,
+              uid: textureUid,
             },
           },
         },
@@ -97,7 +124,7 @@ export default function Configurator() {
 
       // Apply material
       apiRef.setMaterial(updatedMaterial, () => {
-        console.log("[Configurator] Material updated");
+        console.log("[Configurator] Material texture updated");
         setSelectedMaterial(updatedMaterial);
 
         // Update materials list
@@ -122,6 +149,7 @@ export default function Configurator() {
         textures={textures}
         selectedMaterial={selectedMaterial}
         onSelectMaterial={handleSelectMaterial}
+        onChangeColor={handleChangeColor}
         onChangeTexture={handleChangeTexture}
         loading={loadingModels}
         viewerReady={viewerReady}

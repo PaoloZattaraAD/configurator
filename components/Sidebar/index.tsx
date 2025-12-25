@@ -4,6 +4,8 @@ import { CONFIG } from "@/config/settings";
 import Logo from "./Logo";
 import ModelSelector from "./ModelSelector";
 import MaterialSelector from "./MaterialSelector";
+import BaseColorSelector from "./BaseColorSelector";
+import ColorSelector from "./ColorSelector";
 import TextureSelector from "./TextureSelector";
 import type { Model, SketchfabMaterial, SketchfabTexture } from "@/types";
 
@@ -13,7 +15,8 @@ interface SidebarProps {
   textures: SketchfabTexture[];
   selectedMaterial: SketchfabMaterial | null;
   onSelectMaterial: (material: SketchfabMaterial) => void;
-  onChangeTexture: (channelName: string, textureUrl: string) => void;
+  onChangeColor: (channelName: string, color: [number, number, number]) => void;
+  onChangeTexture: (channelName: string, textureUid: string) => void;
   loading: boolean;
   viewerReady: boolean;
 }
@@ -24,6 +27,7 @@ export default function Sidebar({
   textures,
   selectedMaterial,
   onSelectMaterial,
+  onChangeColor,
   onChangeTexture,
   loading,
   viewerReady,
@@ -41,6 +45,20 @@ export default function Sidebar({
           materials={materials}
           selectedMaterial={selectedMaterial}
           onSelectMaterial={onSelectMaterial}
+          loading={!viewerReady}
+        />
+
+        <BaseColorSelector
+          selectedMaterial={selectedMaterial}
+          textures={textures}
+          onChangeColor={onChangeColor}
+          onChangeTexture={onChangeTexture}
+          loading={!viewerReady}
+        />
+
+        <ColorSelector
+          selectedMaterial={selectedMaterial}
+          onChangeColor={onChangeColor}
           loading={!viewerReady}
         />
 
