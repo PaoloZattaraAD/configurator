@@ -164,7 +164,7 @@ const SketchfabViewer = forwardRef<SketchfabViewerHandle, SketchfabViewerProps>(
         ui_annotations: 0,
         ui_vr: 0,
         ui_fullscreen: 0,
-        ui_ar: 0,
+        ui_ar: 1,
         transparent: 0,
         preload: 1,
       });
